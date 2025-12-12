@@ -1,0 +1,6 @@
+{
+	"extends": "@harperdb/code-guidelines/tsconfig.node.json",
+	"compilerOptions": {
+		// Your custom options here
+	}
+}

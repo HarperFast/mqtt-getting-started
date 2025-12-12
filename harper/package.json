@@ -1,0 +1,18 @@
+{
+  "name": "harper-mqtt-getting-started",
+  "version": "1.0.0",
+  "description": "Harper MQTT Getting Started Application",
+  "type": "module",
+  "license": "Apache-2.0",
+  "scripts": {
+    "start": "harperdb run .",
+    "dev": "harperdb dev .",
+    "deploy": "npx -y dotenv-cli -- harperdb deploy . restart=rolling replicated=true"
+  },
+  "prettier": "@harperdb/code-guidelines/prettier",
+  "devDependencies": {
+    "@harperdb/code-guidelines": "^0.0.6",
+    "eslint": "^9.39.1",
+    "prettier": "^3.6.2"
+  }
+}

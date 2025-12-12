@@ -1,0 +1,5 @@
+type Sensors @table {
+    id: ID @primaryKey
+    location: String
+    temp: Float
+}
