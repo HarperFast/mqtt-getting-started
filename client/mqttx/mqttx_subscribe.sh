@@ -3,12 +3,13 @@
 # Install: npm install -g @emqx/mqttx-cli
 # Or: brew install emqx/mqttx/mqttx-cli (macOS)
 
-BROKER="mqtt://localhost:1883"
+BROKER="localhost"
+PORT="1883"
 
 # Subscribe to sensor 101 topic:
-TOPIC="sensors/101"
-# Subscribe to all sensor topics (sensors/101, sensors/102, etc.)
-# TOPIC="sensors/#"
+TOPIC="Sensors/101"
+# Subscribe to all sensor topics (Sensors/101, Sensors/102, etc.)
+# TOPIC="Sensors/#"
 
 echo "Connected to MQTT broker"
 echo "Subscribed to: $TOPIC"
@@ -18,7 +19,7 @@ echo ""
 # Subscribe and listen for messages
 # -v: verbose mode (shows topic, QoS, and retain flag)
 # --format: json output format for easier parsing
-mqttx sub -h "$BROKER" -t "$TOPIC" -q 1 -v --format json | while IFS= read -r line; do
+mqttx sub -h "$BROKER" -p "$PORT" -t "$TOPIC" -q 1 -v --format json | while IFS= read -r line; do
     # Parse JSON output from mqttx
     if echo "$line" | jq . > /dev/null 2>&1; then
         RECEIVED_TOPIC=$(echo "$line" | jq -r '.topic')

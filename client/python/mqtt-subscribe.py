@@ -9,21 +9,21 @@ from datetime import datetime
 import paho.mqtt.client as mqtt
 
 
-def on_connect(client, userdata, flags, rc):
+def on_connect(client, userdata, flags, reason_code, properties):
     """Callback when connected to broker"""
-    if rc == 0:
+    if reason_code == 0:
         print("Connected to MQTT broker")
 
         # Subscribe to sensor 101 topic:
-        topic = "sensors/101"
-        # Subscribe to all sensor topics (sensors/101, sensors/102, etc.)
-        # topic = "sensors/#"
+        topic = "Sensors/101"
+        # Subscribe to all sensor topics (Sensors/101, Sensors/102, etc.)
+        # topic = "Sensors/#"
 
         client.subscribe(topic)
         print(f"Subscribed to: {topic}")
         print("Listening for messages...\n")
     else:
-        print(f"Connection failed with code {rc}")
+        print(f"Connection failed with code {reason_code}")
 
 
 def on_message(client, userdata, msg):
@@ -49,14 +49,14 @@ def on_message(client, userdata, msg):
         print()
 
 
-def on_disconnect(client, userdata, rc):
+def on_disconnect(client, userdata, disconnect_flags, reason_code, properties):
     """Callback when disconnected from broker"""
-    if rc != 0:
-        print(f"Unexpected disconnection. Code: {rc}")
+    if reason_code != 0:
+        print(f"Unexpected disconnection. Code: {reason_code}")
 
 
 def main():
-    client = mqtt.Client()
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
     client.on_connect = on_connect
     client.on_message = on_message
     client.on_disconnect = on_disconnect

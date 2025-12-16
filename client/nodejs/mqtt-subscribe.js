@@ -5,9 +5,9 @@ client.on('connect', () => {
   console.log('Connected to MQTT broker');
 
   // Subscribe to sensor 101 topic:
-  const topic = 'sensors/101';
-  // Subscribe to all sensor topics (sensors/101, sensors/102, etc.)
-  // const topic = 'sensors/#';
+  const topic = 'Sensors/101';
+  // Subscribe to all sensor topics (Sensors/101, Sensors/102, etc.)
+  // const topic = 'Sensors/#';
 
   client.subscribe(topic, (err) => {
     if (err) {

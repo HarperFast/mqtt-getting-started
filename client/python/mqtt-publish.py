@@ -15,18 +15,18 @@ def random_temp():
     return round(random.uniform(65, 85), 1)
 
 
-def on_connect(client, userdata, flags, rc):
+def on_connect(client, userdata, flags, reason_code, properties):
     """Callback when connected to broker"""
-    if rc == 0:
+    if reason_code == 0:
         print("Connected to MQTT broker")
         publish_message(client)
     else:
-        print(f"Connection failed with code {rc}")
+        print(f"Connection failed with code {reason_code}")
 
 
 def publish_message(client):
     """Publish a single message"""
-    topic = "sensors/101"
+    topic = "Sensors/101"
     payload = json.dumps({
         "temp": random_temp(),
         "location": "warehouse"
@@ -46,20 +46,15 @@ def publish_message(client):
     client.disconnect()
 
 
-def main():
-    client = mqtt.Client()
-    client.on_connect = on_connect
+# def main():
+#     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+#     client.on_connect = on_connect
 
-    try:
-        client.connect("localhost", 1883, 60)
-        client.loop_forever()
-    except Exception as e:
-        print(f"Error: {e}")
-
-
-if __name__ == "__main__":
-    main()
-
+#     try:
+#         client.connect("localhost", 1883, 60)
+#         client.loop_forever()
+#     except Exception as e:
+#         print(f"Error: {e}")
 
 # ============================================================
 # TIER 1: Enable database persistence - uncomment to enable
@@ -70,16 +65,15 @@ if __name__ == "__main__":
 # TIER 2: Continuous publishing - uncomment to enable
 # Replace the main() function above with this version
 # ============================================================
-"""
 def main():
-    client = mqtt.Client()
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 
-    def on_connect(client, userdata, flags, rc):
-        if rc == 0:
+    def on_connect(client, userdata, flags, reason_code, properties):
+        if reason_code == 0:
             print("Connected to MQTT broker")
             print("Publishing every 5 seconds... (Ctrl+C to stop)")
         else:
-            print(f"Connection failed with code {rc}")
+            print(f"Connection failed with code {reason_code}")
 
     client.on_connect = on_connect
 
@@ -88,7 +82,7 @@ def main():
         client.loop_start()
 
         while True:
-            topic = "sensors/101"
+            topic = "Sensors/101"
             payload = json.dumps({
                 "temp": random_temp(),
                 "location": "warehouse"
@@ -110,4 +104,6 @@ def main():
         client.disconnect()
     except Exception as e:
         print(f"Error: {e}")
-"""
+
+if __name__ == "__main__":
+    main()

@@ -1,4 +1,4 @@
-type Sensors @table {
+type Sensors @table @export {
     id: ID @primaryKey
     location: String
     temp: Float
