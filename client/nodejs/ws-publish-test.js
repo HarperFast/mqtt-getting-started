@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 const WebSocket = require('ws');
 
 // Get payload from command line argument

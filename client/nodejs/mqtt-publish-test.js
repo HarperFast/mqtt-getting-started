@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 const mqtt = require('mqtt');
 
 // Get payload from command line argument
