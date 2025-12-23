@@ -57,15 +57,17 @@ run_publisher_test() {
     # Determine which test publisher to use
     if [ "$lang" = "nodejs" ]; then
         local cmd="node ${PROJECT_ROOT}/client/nodejs/${protocol}-publish-test.js"
-    else
+    elif [ "$lang" = "python" ]; then
         local cmd="python3 ${PROJECT_ROOT}/client/python/${protocol}-publish-test.py"
+    elif [ "$lang" = "mqttx" ]; then
+        local cmd="${PROJECT_ROOT}/client/mqttx/mqttx-publish-test.sh"
     fi
 
     # Publish the message
     echo "Publishing..."
     if ! $cmd "$payload" 2>&1; then
         echo -e "${RED}✗ Publish failed${NC}"
-        echo "FAIL|0|6|Publish error" > "$RESULTS_DIR/$pub_name"
+        echo "FAIL|0|7|Publish error" > "$RESULTS_DIR/$pub_name"
         return 1
     fi
 
@@ -85,6 +87,7 @@ run_publisher_test() {
         "python-mqtt"
         "python-ws"
         "python-sse"
+        "mqttx-mqtt"
     )
 
     for sub_name in "${subscribers[@]}"; do
@@ -105,13 +108,13 @@ run_publisher_test() {
 
     # Report results
     echo ""
-    if [ "$received_count" -eq 6 ]; then
-        echo -e "${GREEN}✓ SUCCESS: All 6 subscribers received message${NC}"
-        echo "PASS|6|6|" > "$RESULTS_DIR/$pub_name"
+    if [ "$received_count" -eq 7 ]; then
+        echo -e "${GREEN}✓ SUCCESS: All 7 subscribers received message${NC}"
+        echo "PASS|7|7|" > "$RESULTS_DIR/$pub_name"
     else
-        echo -e "${RED}✗ FAILED: Only ${received_count}/6 subscribers received message${NC}"
+        echo -e "${RED}✗ FAILED: Only ${received_count}/7 subscribers received message${NC}"
         echo -e "${YELLOW}Missing: ${missing_subs[*]}${NC}"
-        echo "FAIL|${received_count}|6|Missing: ${missing_subs[*]}" > "$RESULTS_DIR/$pub_name"
+        echo "FAIL|${received_count}|7|Missing: ${missing_subs[*]}" > "$RESULTS_DIR/$pub_name"
     fi
     echo ""
 }
@@ -121,6 +124,7 @@ run_publisher_test "nodejs" "mqtt"
 run_publisher_test "nodejs" "ws"
 run_publisher_test "python" "mqtt"
 run_publisher_test "python" "ws"
+run_publisher_test "mqttx" "mqtt"
 
 # Print final summary
 echo "========================================="
@@ -131,7 +135,7 @@ echo ""
 total_tests=0
 passed_tests=0
 
-for pub_name in "nodejs-mqtt" "nodejs-ws" "python-mqtt" "python-ws"; do
+for pub_name in "nodejs-mqtt" "nodejs-ws" "python-mqtt" "python-ws" "mqttx-mqtt"; do
     ((total_tests++))
 
     if [ -f "$RESULTS_DIR/$pub_name" ]; then

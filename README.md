@@ -145,8 +145,8 @@ cd client
 ```
 
 This will:
-1. Launch all 6 subscribers in background
-2. Test each of the 4 publishers sequentially
+1. Launch all 7 subscribers in background
+2. Test each of the 5 publishers sequentially
 3. Verify all subscribers receive each message
 4. Display a summary report
 
@@ -176,9 +176,9 @@ tail -f ../test-logs/*.log
 
 #### Test Architecture
 
-- **6 Subscribers**: nodejs-mqtt, nodejs-ws, nodejs-sse, python-mqtt, python-ws, python-sse
-- **4 Publishers**: nodejs-mqtt, nodejs-ws, python-mqtt, python-ws
-- **Cross-protocol verification**: Each publisher's message must reach all 6 subscribers
+- **7 Subscribers**: nodejs-mqtt, nodejs-ws, nodejs-sse, python-mqtt, python-ws, python-sse, mqttx-mqtt
+- **5 Publishers**: nodejs-mqtt, nodejs-ws, python-mqtt, python-ws, mqttx-mqtt
+- **Cross-protocol verification**: Each publisher's message must reach all 7 subscribers
 - **Log-based monitoring**: Subscribers write to log files in `test-logs/`
 - **Automated verification**: Test script parses subscriber logs and reports pass/fail
 
@@ -186,6 +186,7 @@ tail -f ../test-logs/*.log
 
 - Harper running on localhost:9926
 - MQTT broker running on localhost:1883
+- mqttx-cli (install: `npm install -g @emqx/mqttx-cli` or `brew install emqx/mqttx/mqttx-cli`)
 
 ## License
 

@@ -66,6 +66,7 @@ subscribers=(
     "python:mqtt"
     "python:ws"
     "python:sse"
+    "mqttx:mqtt"
 )
 
 for sub in "${subscribers[@]}"; do
@@ -74,8 +75,10 @@ for sub in "${subscribers[@]}"; do
 
     if [ "$lang" = "nodejs" ]; then
         node "$PROJECT_ROOT/client/nodejs/${protocol}-subscribe.js" > "$log_file" 2>&1 &
-    else
+    elif [ "$lang" = "python" ]; then
         python3 "$PROJECT_ROOT/client/python/${protocol}-subscribe.py" > "$log_file" 2>&1 &
+    elif [ "$lang" = "mqttx" ]; then
+        "$PROJECT_ROOT/client/mqttx/mqttx-subscribe-test.sh" > "$log_file" 2>&1 &
     fi
 
     echo $! >> "$PID_FILE"
