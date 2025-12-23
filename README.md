@@ -11,9 +11,30 @@ This repository provides everything you need to get started with real-time messa
 
 ## Quick Start
 
-### 1. Start the Harper Application
+### 1. Set Up Environment
 
-First, set up and run the Harper application:
+This project uses pyenv for Python environment management. Run the setup script to configure everything:
+
+```bash
+./setup.sh
+```
+
+Or manually:
+
+```bash
+# Create and activate Python environment
+pyenv virtualenv 3.11 mqtt-getting-started
+pyenv local mqtt-getting-started
+
+# Install dependencies
+pip install -r requirements.txt
+cd harper && npm install
+cd client/nodejs && npm install
+```
+
+### 2. Start the Harper Application
+
+Set up and run the Harper application:
 
 ```bash
 cd harper
@@ -23,7 +44,7 @@ npm run dev
 
 See the [harper/README.md](./harper/README.md) for detailed setup and configuration.
 
-### 2. Run a Client
+### 3. Run a Client
 
 Once the Harper application is running, choose your preferred client implementation:
 
@@ -31,8 +52,8 @@ Once the Harper application is running, choose your preferred client implementat
 # Node.js
 cd client/nodejs && npm install
 
-# Python
-cd client/python && pip install -r requirements.txt
+# Python (environment already activated via .python-version)
+cd client/python
 
 # MQTTX CLI
 cd client/mqttx && ./install.sh

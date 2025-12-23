@@ -1,0 +1,5 @@
+# Python dependencies for MQTT/WebSocket/SSE clients
+paho-mqtt>=2.0.0
+websockets>=12.0
+sseclient-py>=1.8.0
+requests>=2.31.0
