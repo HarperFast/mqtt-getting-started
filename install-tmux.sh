@@ -2,14 +2,19 @@
 
 set -euo pipefail
 
-echo "Installing tmux from source..."
+echo "Installing tmux from source to ./bin..."
 echo "This will compile libevent, ncurses, and tmux"
 echo ""
 
-# Create a directory
-INSTALL_DIR=~/tmux-install
-mkdir -p "$INSTALL_DIR"
-cd "$INSTALL_DIR"
+# Get the project root directory (where this script lives)
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+INSTALL_PREFIX="$PROJECT_ROOT/bin"
+BUILD_DIR="$PROJECT_ROOT/tmux-build"
+
+# Create directories
+mkdir -p "$INSTALL_PREFIX"
+mkdir -p "$BUILD_DIR"
+cd "$BUILD_DIR"
 
 # Get the files (updated to current versions)
 echo "Downloading sources..."
@@ -26,35 +31,49 @@ tar xzf tmux.tar.gz
 # Compile libevent
 echo "Compiling libevent..."
 cd libevent-2.1.12-stable
-./configure --prefix=/usr/local --disable-shared
+./configure --prefix="$INSTALL_PREFIX" --disable-shared
 make
-sudo make install
+make install
 cd ..
 
 # Compile ncurses
 echo "Compiling ncurses..."
 cd ncurses-6.4
-./configure --prefix=/usr/local --with-shared --with-cxx-shared --enable-widec
+./configure --prefix="$INSTALL_PREFIX" --with-shared --with-cxx-shared --enable-widec
 make
-sudo make install
+make install
 cd ..
 
 # Compile tmux
 echo "Compiling tmux..."
 cd tmux-3.4
-./configure --prefix=/usr/local \
-    CFLAGS="-I/usr/local/include -I/usr/local/include/ncursesw" \
-    LDFLAGS="-L/usr/local/lib" \
-    PKG_CONFIG_PATH="/usr/local/lib/pkgconfig"
+./configure --prefix="$INSTALL_PREFIX" \
+    CFLAGS="-I$INSTALL_PREFIX/include -I$INSTALL_PREFIX/include/ncursesw" \
+    LDFLAGS="-L$INSTALL_PREFIX/lib" \
+    PKG_CONFIG_PATH="$INSTALL_PREFIX/lib/pkgconfig"
 make
-sudo make install
+make install
 cd ..
 
-# Clean up
-echo "Cleaning up..."
-cd ~
-rm -rf "$INSTALL_DIR"
+# Clean up build directory
+echo "Cleaning up build files..."
+cd "$PROJECT_ROOT"
+rm -rf "$BUILD_DIR"
 
 echo ""
+echo "========================================"
 echo "Installation complete!"
-tmux -V    
+echo "========================================"
+echo ""
+echo "tmux installed to: $INSTALL_PREFIX/bin/tmux"
+echo ""
+echo "To use:"
+echo "  $INSTALL_PREFIX/bin/tmux"
+echo ""
+echo "Or add to your PATH:"
+echo "  export PATH=\"$INSTALL_PREFIX/bin:\$PATH\""
+echo ""
+echo "To remove tmux and all dependencies later:"
+echo "  rm -rf $INSTALL_PREFIX"
+echo ""
+"$INSTALL_PREFIX/bin/tmux" -V    
