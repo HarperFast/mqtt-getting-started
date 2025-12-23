@@ -115,13 +115,6 @@ Shell script examples using the MQTTX command-line tool.
 - Quick testing and debugging
 - Platform-agnostic command-line interface
 
-## Tier Structure
-
-All client implementations follow the same tier progression:
-
-- **Tier 0 (MVP):** Single message publish (MQTT: no persistence, WebSocket/SSE: automatic persistence)
-- **Tier 1:** Enable database persistence (MQTT: `retain` flag, WebSocket/SSE: automatic)
-- **Tier 2:** Continuous publishing every 5 seconds
 
 ## Protocol Comparison
 
@@ -129,11 +122,81 @@ All client implementations follow the same tier progression:
 - **WebSocket:** Bidirectional communication, direct resource connection, automatic persistence, lower overhead
 - **SSE:** Unidirectional (server→client), simple HTTP-based, automatic reconnection, automatic persistence
 
+## Publisher Usage
+
+All publishers support two modes of operation:
+
+### Default Mode: Continuous Publishing
+Run without arguments to continuously publish auto-generated messages every 5 seconds:
+
+```bash
+# Node.js
+node client/nodejs/mqtt-publish.js
+node client/nodejs/ws-publish.js
+
+# Python
+python3 client/python/mqtt-publish.py
+python3 client/python/ws-publish.py
+
+# MQTTX CLI
+client/mqttx/mqttx-publish.sh
+```
+
+### Test Mode: Single Custom Message
+Provide a JSON payload as an argument for testing (used by test suite):
+
+```bash
+# Node.js
+node client/nodejs/mqtt-publish.js '{"temp":72.5,"location":"test-lab"}'
+
+# Python
+python3 client/python/mqtt-publish.py '{"temp":72.5,"location":"test-lab"}'
+
+# MQTTX CLI
+client/mqttx/mqttx-publish.sh '{"temp":72.5,"location":"test-lab"}'
+```
+
+### Message Persistence (MQTT Only)
+
+MQTT messages support persistence control via the `MQTT_RETAIN` environment variable:
+
+- **`MQTT_RETAIN=true` (default):** Messages are retained and stored in the database
+- **`MQTT_RETAIN=false`:** Messages are ephemeral, forwarded to active subscribers only, not stored
+
+```bash
+# Persistent message (stored in database)
+node client/nodejs/mqtt-publish.js '{"temp":72.5,"location":"warehouse"}'
+
+# Ephemeral message (not stored, only forwarded to active subscribers)
+MQTT_RETAIN=false node client/nodejs/mqtt-publish.js '{"temp":72.5,"location":"warehouse"}'
+
+# Also works in continuous mode
+MQTT_RETAIN=false python3 client/python/mqtt-publish.py
+```
+
+**Note:** WebSocket messages to Harper resources are always persisted automatically.
+
 ## Testing
 
 ### Cross-Protocol Test Suite
 
 Automated tests verify that messages published via any protocol (MQTT/WebSocket) are received by all subscribers across all protocols and languages.
+
+### Test Results
+
+<!-- TEST_RESULTS_START -->
+
+Last run: 2025-12-23 21:51:26 UTC
+
+| Publisher (rows) / Subscriber (columns) | nodejs-mqtt | nodejs-ws | nodejs-sse | python-mqtt | python-ws | python-sse | mqttx-mqtt |
+|----------------------------------------|-------------|-------------|-------------|-------------|-------------|-------------|-------------|
+| Node.js MQTT | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Node.js WS | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Python MQTT | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Python WS | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| MQTTX MQTT | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+
+<!-- TEST_RESULTS_END -->
 
 #### Quick Start
 

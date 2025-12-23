@@ -1,6 +1,6 @@
 type Topics @table @export (name: "/"){
     id: ID @primaryKey
-}   
+}
 
 # type Sensors @table @export {
 #     id: ID @primaryKey

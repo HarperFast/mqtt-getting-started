@@ -1,69 +1,65 @@
+#!/usr/bin/env node
 const mqtt = require('mqtt');
-const client = mqtt.connect('mqtt://localhost:1883');
 
 // Helper to generate random temperature
 function randomTemp() {
-  return (Math.random() * 40 + 65).toFixed(1); // 65-105°F
+  return (Math.random() * 20 + 65).toFixed(4); // 65-85°F
 }
 
-client.on('connect', () => {
-  console.log('Connected to MQTT broker');
+// Check if custom payload provided (for testing)
+const customPayload = process.argv[2];
 
-  // Topic maps directly to the 'Sensors' table, record ID '101'
-  const topic = 'Sensors/101';
+// Check retain flag (defaults to true, set MQTT_RETAIN=false for ephemeral messages)
+const retain = process.env.MQTT_RETAIN !== 'false';
 
-  // ============================================================
-  // TIER 0: MVP - Single publish, no database persistence
-  // ============================================================
-  const payload = JSON.stringify({
-    temp: parseFloat(randomTemp()),
-    location: 'warehouse'
+function publish() {
+  const client = mqtt.connect('mqtt://localhost:1883');
+
+  client.on('connect', () => {
+    console.log('Connected to MQTT broker');
+
+    if (customPayload) {
+      // Single publish with provided payload (for testing)
+      client.publish('Sensors/101', customPayload, { qos: 1, retain: retain }, (err) => {
+        if (err) {
+          console.error('Publish failed:', err);
+          process.exit(1);
+        }
+        console.log(`Published: ${customPayload} (retain: ${retain})`);
+        client.end();
+        process.exit(0);
+      });
+    } else {
+      // Default: continuous publishing with auto-generated messages
+      console.log(`Publishing every 5 seconds (retain: ${retain})... (Ctrl+C to stop)\n`);
+
+      const sendMessage = () => {
+        const payload = JSON.stringify({
+          temp: parseFloat(randomTemp()),
+          location: 'warehouse',
+        });
+
+        client.publish('Sensors/101', payload, { qos: 1, retain: retain }, (err) => {
+          if (err) {
+            console.error('Publish failed:', err);
+          } else {
+            console.log(`Published: ${payload}`);
+          }
+        });
+      };
+
+      // Publish immediately
+      sendMessage();
+
+      // Then publish every 5 seconds
+      setInterval(sendMessage, 5000);
+    }
   });
 
-  // ============================================================
-  // TIER 1: Enable database persistence - uncomment to enable
-  // Replace retain: false with retain: true above
-  // ============================================================
-  // client.publish(topic, payload, { retain: true, qos: 1 }, (err) => {
-  // client.publish(topic, payload, { retain: false, qos: 1 }, (err) => {
-  //   if (err) {
-  //     console.error('Publish error:', err);
-  //   } else {
-  //     console.log(`Published: ${payload}`);
-  //   }
-  //   client.end();
-  // });
-  // Retain = true means "Upsert this record to the database"
-  //   if (err) {
-  //     console.error('Publish error:', err);
-  //   } else {
-  //     console.log(`Published: ${payload}`);
-  //   }
-  //   client.end();
-  // });
+  client.on('error', (err) => {
+    console.error('Connection error:', err);
+    process.exit(1);
+  });
+}
 
-  // ============================================================
-  // TIER 2: Continuous publishing - uncomment to enable
-  // Comment out Tier 0/1 single publish code above
-  // ============================================================
-  setInterval(() => {
-    const payload = JSON.stringify({
-      temp: parseFloat(randomTemp()),
-      location: 'warehouse'
-    });
-
-    // Retain = true means "Upsert this record to the database"
-    client.publish(topic, payload, { retain: true, qos: 1 }, (err) => {
-      if (err) {
-        console.error('Publish error:', err);
-      } else {
-        console.log(`Published: ${payload}`);
-      }
-    });
-  }, 5000); // Publish every 5 seconds
-});
-
-client.on('error', (err) => {
-  console.error('Connection error:', err);
-  client.end();
-});
+publish();

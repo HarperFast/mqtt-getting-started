@@ -2,8 +2,14 @@
 """
 MQTT Publisher for sensor data
 Requires: pip install paho-mqtt
+
+Usage:
+  python3 mqtt-publish.py                                    # Continuous publishing with auto-generated messages
+  python3 mqtt-publish.py '{"temp":72.5,"location":"test"}'  # Single publish with custom payload (for testing)
 """
 
+import sys
+import os
 import json
 import random
 import time
@@ -12,91 +18,57 @@ import paho.mqtt.client as mqtt
 
 def random_temp():
     """Generate random temperature between 65-85°F"""
-    return round(random.uniform(65, 85), 1)
+    return round(random.uniform(65, 85), 4)
+
+
+# Check retain flag (defaults to true, set MQTT_RETAIN=false for ephemeral messages)
+retain = os.environ.get('MQTT_RETAIN', 'true').lower() != 'false'
 
 
 def on_connect(client, userdata, flags, reason_code, properties):
     """Callback when connected to broker"""
     if reason_code == 0:
         print("Connected to MQTT broker")
-        publish_message(client)
     else:
         print(f"Connection failed with code {reason_code}")
+        sys.exit(1)
 
 
-def publish_message(client):
-    """Publish a single message"""
-    topic = "Sensors/101"
-    payload = json.dumps({
-        "temp": random_temp(),
-        "location": "warehouse"
-    })
-
-    # ============================================================
-    # TIER 0: MVP - Single publish, no database persistence
-    # ============================================================
-    result = client.publish(topic, payload, qos=1, retain=False)
-
-    if result.rc == mqtt.MQTT_ERR_SUCCESS:
-        print(f"Published: {payload}")
-    else:
-        print(f"Publish failed with code {result.rc}")
-
-    # Disconnect after publishing
-    client.disconnect()
-
-
-# def main():
-#     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-#     client.on_connect = on_connect
-
-#     try:
-#         client.connect("localhost", 1883, 60)
-#         client.loop_forever()
-#     except Exception as e:
-#         print(f"Error: {e}")
-
-# ============================================================
-# TIER 1: Enable database persistence - uncomment to enable
-# Change retain=False to retain=True above
-# ============================================================
-
-# ============================================================
-# TIER 2: Continuous publishing - uncomment to enable
-# Replace the main() function above with this version
-# ============================================================
 def main():
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-
-    def on_connect(client, userdata, flags, reason_code, properties):
-        if reason_code == 0:
-            print("Connected to MQTT broker")
-            print("Publishing every 5 seconds... (Ctrl+C to stop)")
-        else:
-            print(f"Connection failed with code {reason_code}")
-
     client.on_connect = on_connect
 
     try:
         client.connect("localhost", 1883, 60)
         client.loop_start()
 
-        while True:
-            topic = "Sensors/101"
-            payload = json.dumps({
-                "temp": random_temp(),
-                "location": "warehouse"
-            })
+        # Wait for connection
+        time.sleep(0.5)
 
-            # Retain = true means "Upsert this record to the database"
-            result = client.publish(topic, payload, qos=1, retain=True)
+        # Check if custom payload provided (for testing)
+        custom_payload = sys.argv[1] if len(sys.argv) >= 2 else None
 
-            if result.rc == mqtt.MQTT_ERR_SUCCESS:
+        if custom_payload:
+            # Single publish with provided payload (for testing)
+            result = client.publish("Sensors/101", custom_payload, qos=1, retain=retain)
+            result.wait_for_publish()
+            print(f"Published: {custom_payload} (retain: {retain})")
+            client.loop_stop()
+            client.disconnect()
+        else:
+            # Default: continuous publishing with auto-generated messages
+            print(f"Publishing every 5 seconds (retain: {retain})... (Ctrl+C to stop)\n")
+
+            while True:
+                payload = json.dumps({
+                    "temp": random_temp(),
+                    "location": "warehouse"
+                })
+
+                client.publish("Sensors/101", payload, qos=1, retain=retain)
                 print(f"Published: {payload}")
-            else:
-                print(f"Publish failed with code {result.rc}")
 
-            time.sleep(5)
+                time.sleep(5)
 
     except KeyboardInterrupt:
         print("\nStopping publisher...")
@@ -104,6 +76,8 @@ def main():
         client.disconnect()
     except Exception as e:
         print(f"Error: {e}")
+        sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

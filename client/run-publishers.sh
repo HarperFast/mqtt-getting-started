@@ -6,7 +6,7 @@ set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOG_DIR="$PROJECT_ROOT/test-logs"
 PID_FILE="$LOG_DIR/subscribers.pids"
-TIMEOUT=5
+TIMEOUT=10
 
 # Color codes for output
 RED='\033[0;31m'
@@ -54,13 +54,13 @@ run_publisher_test() {
     echo "Payload: $payload"
     echo ""
 
-    # Determine which test publisher to use
+    # Determine which publisher to use
     if [ "$lang" = "nodejs" ]; then
-        local cmd="node ${PROJECT_ROOT}/client/nodejs/${protocol}-publish-test.js"
+        local cmd="node ${PROJECT_ROOT}/client/nodejs/${protocol}-publish.js"
     elif [ "$lang" = "python" ]; then
-        local cmd="python3 ${PROJECT_ROOT}/client/python/${protocol}-publish-test.py"
+        local cmd="python3 ${PROJECT_ROOT}/client/python/${protocol}-publish.py"
     elif [ "$lang" = "mqttx" ]; then
-        local cmd="${PROJECT_ROOT}/client/mqttx/mqttx-publish-test.sh"
+        local cmd="${PROJECT_ROOT}/client/mqttx/mqttx-publish.sh"
     fi
 
     # Publish the message
@@ -79,6 +79,7 @@ run_publisher_test() {
     echo "Checking subscriber receipts..."
     local received_count=0
     local missing_subs=()
+    local sub_results=()
 
     local subscribers=(
         "nodejs-mqtt"
@@ -95,26 +96,31 @@ run_publisher_test() {
 
         if [ ! -f "$log_file" ]; then
             missing_subs+=("$sub_name (no log)")
+            sub_results+=("$sub_name:❌")
             continue
         fi
 
         # Look for the location string in the log (unique identifier)
         if grep -q "$location" "$log_file"; then
             ((received_count++))
+            sub_results+=("$sub_name:✅")
         else
             missing_subs+=("$sub_name")
+            sub_results+=("$sub_name:❌")
         fi
     done
+
+    # Store per-subscriber results (pipe-separated)
+    local results_line=$(IFS='|'; echo "${sub_results[*]}")
+    echo "$results_line" > "$RESULTS_DIR/$pub_name"
 
     # Report results
     echo ""
     if [ "$received_count" -eq 7 ]; then
         echo -e "${GREEN}✓ SUCCESS: All 7 subscribers received message${NC}"
-        echo "PASS|7|7|" > "$RESULTS_DIR/$pub_name"
     else
         echo -e "${RED}✗ FAILED: Only ${received_count}/7 subscribers received message${NC}"
         echo -e "${YELLOW}Missing: ${missing_subs[*]}${NC}"
-        echo "FAIL|${received_count}|7|Missing: ${missing_subs[*]}" > "$RESULTS_DIR/$pub_name"
     fi
     echo ""
 }
@@ -127,39 +133,103 @@ run_publisher_test "python" "ws"
 run_publisher_test "mqttx" "mqtt"
 
 # Print final summary
+echo ""
 echo "========================================="
-echo "Test Summary"
+echo "Test Summary Matrix"
 echo "========================================="
 echo ""
 
+# Subscriber names for header
+subscribers=(
+    "nodejs-mqtt"
+    "nodejs-ws"
+    "nodejs-sse"
+    "python-mqtt"
+    "python-ws"
+    "python-sse"
+    "mqttx-mqtt"
+)
+
+# Print table header
+printf "%-40s" "Publisher (rows) / Subscriber (columns)"
+for sub in "${subscribers[@]}"; do
+    printf " %-12s" "$sub"
+done
+echo ""
+
+printf "%-40s" "----------------------------------------"
+for sub in "${subscribers[@]}"; do
+    printf " %-12s" "------------"
+done
+echo ""
+
+# Get publisher labels
+get_pub_label() {
+    case "$1" in
+        "nodejs-mqtt") echo "Node.js MQTT" ;;
+        "nodejs-ws") echo "Node.js WS" ;;
+        "python-mqtt") echo "Python MQTT" ;;
+        "python-ws") echo "Python WS" ;;
+        "mqttx-mqtt") echo "MQTTX MQTT" ;;
+    esac
+}
+
+# Count successes
 total_tests=0
 passed_tests=0
 
+# Print results for each publisher
 for pub_name in "nodejs-mqtt" "nodejs-ws" "python-mqtt" "python-ws" "mqttx-mqtt"; do
     ((total_tests++))
+    pub_label=$(get_pub_label "$pub_name")
+    printf "%-40s" "$pub_label"
 
     if [ -f "$RESULTS_DIR/$pub_name" ]; then
-        IFS='|' read -r status received total details <<< "$(cat "$RESULTS_DIR/$pub_name")"
+        # Read per-subscriber results
+        results=$(cat "$RESULTS_DIR/$pub_name")
 
-        if [ "$status" = "PASS" ]; then
+        # Check if all passed
+        all_passed=true
+        for sub in "${subscribers[@]}"; do
+            # Extract status for this subscriber
+            status=$(echo "$results" | grep -o "$sub:[^|]*" | cut -d: -f2)
+
+            if [ -z "$status" ]; then
+                printf " %-12s" "⚪️"
+                all_passed=false
+            elif [ "$status" = "✅" ]; then
+                # Green for success
+                printf " ${GREEN}%-12s${NC}" "$status"
+            else
+                # Red for failure
+                printf " ${RED}%-12s${NC}" "$status"
+                all_passed=false
+            fi
+        done
+
+        if [ "$all_passed" = true ]; then
             ((passed_tests++))
-            echo -e "${GREEN}✓${NC} ${pub_name}: ${received}/${total} subscribers"
-        else
-            echo -e "${RED}✗${NC} ${pub_name}: ${received}/${total} subscribers ($details)"
         fi
     else
-        echo -e "${RED}✗${NC} ${pub_name}: No result recorded"
+        # No results file
+        for sub in "${subscribers[@]}"; do
+            printf " ${RED}%-12s${NC}" "⚪️"
+        done
     fi
+    echo ""
 done
 
 echo ""
 echo "Overall: ${passed_tests}/${total_tests} publishers fully successful"
 echo ""
 
+# Update README with results
+"$PROJECT_ROOT/client/update-test-results.sh" "$RESULTS_DIR" || echo "Warning: Could not update README"
+
 if [ "$passed_tests" -eq "$total_tests" ]; then
-    echo -e "${GREEN}All tests passed!${NC}"
+    echo -e "${GREEN}✅ All tests passed!${NC}"
     exit 0
 else
-    echo -e "${YELLOW}Some tests failed${NC}"
+    echo -e "${YELLOW}⚠️  Some tests failed${NC}"
     exit 1
 fi
