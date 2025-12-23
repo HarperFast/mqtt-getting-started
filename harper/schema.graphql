@@ -1,5 +1,11 @@
-type Sensors @table {
+type Topics @table @export (name: "/"){
     id: ID @primaryKey
-    location: String
-    temp: Float
 }
+
+# type Sensors @table @export {
+#     id: ID @primaryKey
+#     location: String
+#     temp: Float
+#     publisher: String
+#     timestamp: DateTime
+# }
