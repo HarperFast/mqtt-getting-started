@@ -48,6 +48,7 @@ cd ..
 echo "Compiling tmux..."
 cd tmux-3.4
 ./configure --prefix="$INSTALL_PREFIX" \
+    --disable-utf8proc \
     CFLAGS="-I$INSTALL_PREFIX/include -I$INSTALL_PREFIX/include/ncursesw" \
     LDFLAGS="-L$INSTALL_PREFIX/lib" \
     PKG_CONFIG_PATH="$INSTALL_PREFIX/lib/pkgconfig"
