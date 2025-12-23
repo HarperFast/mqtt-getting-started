@@ -165,7 +165,7 @@ Detach: `Ctrl+b` then `d`
 
 #### Requirements
 
-- tmux (install: `./install-tmux.sh`, or `brew install tmux` on macOS, or `apt-get install tmux` on Linux)
+- tmux (install: `brew install tmux` on macOS, or `apt-get install tmux` on Linux)
 - Harper running on localhost:9926
 - MQTT broker running on localhost:1883
 

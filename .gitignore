@@ -37,10 +37,3 @@ Thumbs.db
 # Logs
 *.log
 logs/
-
-# Local tmux installation
-bin/
-lib/
-include/
-share/
-tmux-build/
