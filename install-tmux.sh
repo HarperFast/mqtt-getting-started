@@ -3,7 +3,7 @@
 set -euo pipefail
 
 echo "Installing tmux from source to ./bin..."
-echo "This will compile libevent, ncurses, and tmux"
+echo "This will compile libevent and tmux (using system ncurses)"
 echo ""
 
 # Get the project root directory (where this script lives)
@@ -19,13 +19,11 @@ cd "$BUILD_DIR"
 # Get the files (updated to current versions)
 echo "Downloading sources..."
 curl -L https://github.com/libevent/libevent/releases/download/release-2.1.12-stable/libevent-2.1.12-stable.tar.gz -o libevent.tar.gz
-curl -L https://invisible-mirror.net/archives/ncurses/ncurses-6.4.tar.gz -o ncurses.tar.gz
 curl -L https://github.com/tmux/tmux/releases/download/3.4/tmux-3.4.tar.gz -o tmux.tar.gz
 
 # Extract them
 echo "Extracting archives..."
 tar xzf libevent.tar.gz
-tar xzf ncurses.tar.gz
 tar xzf tmux.tar.gz
 
 # Compile libevent
@@ -36,20 +34,12 @@ make
 make install
 cd ..
 
-# Compile ncurses
-echo "Compiling ncurses..."
-cd ncurses-6.4
-./configure --prefix="$INSTALL_PREFIX" --with-shared --with-cxx-shared --enable-widec
-make
-make install
-cd ..
-
-# Compile tmux
+# Compile tmux (using system ncurses)
 echo "Compiling tmux..."
 cd tmux-3.4
 ./configure --prefix="$INSTALL_PREFIX" \
     --disable-utf8proc \
-    CFLAGS="-I$INSTALL_PREFIX/include -I$INSTALL_PREFIX/include/ncursesw" \
+    CFLAGS="-I$INSTALL_PREFIX/include" \
     LDFLAGS="-L$INSTALL_PREFIX/lib" \
     PKG_CONFIG_PATH="$INSTALL_PREFIX/lib/pkgconfig"
 make
