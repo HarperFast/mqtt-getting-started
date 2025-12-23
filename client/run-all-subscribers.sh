@@ -1,29 +1,31 @@
 #!/usr/bin/env bash
-# Launch all 6 subscribers in tmux with 2x3 grid layout
+# Launch all 6 subscribers in background with output capture
 
 set -euo pipefail
 
-SESSION_NAME="mqtt-test-subscribers"
-WRAPPER="/Users/ivan/Projects/mqtt-getting-started/client/wrappers/wrap-subscriber.sh"
-
-# Check if tmux is installed
-if ! command -v tmux &> /dev/null; then
-    echo "Error: tmux is not installed"
-    echo "Install with: brew install tmux (macOS) or apt-get install tmux (Linux)"
-    exit 1
-fi
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+LOG_DIR="$PROJECT_ROOT/test-logs"
+PID_FILE="$LOG_DIR/subscribers.pids"
 
 # Handle stop command
 if [ "${1:-}" = "stop" ]; then
     echo "Stopping all subscribers..."
-    tmux kill-session -t "$SESSION_NAME" 2>/dev/null || echo "No session to stop"
+    if [ -f "$PID_FILE" ]; then
+        while read pid; do
+            kill "$pid" 2>/dev/null || true
+        done < "$PID_FILE"
+        rm -f "$PID_FILE"
+        echo "All subscribers stopped"
+    else
+        echo "No subscribers running"
+    fi
     exit 0
 fi
 
-# Check if session already exists
-if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
-    echo "Session '$SESSION_NAME' already exists."
-    echo "Run '$0 stop' to kill it first, or attach with: tmux attach -t $SESSION_NAME"
+# Check if already running
+if [ -f "$PID_FILE" ]; then
+    echo "Subscribers already running (PID file exists)"
+    echo "Run '$0 stop' to stop them first"
     exit 1
 fi
 
@@ -48,34 +50,44 @@ if ! nc -z localhost 1883 2>/dev/null; then
     fi
 fi
 
-echo "Starting all subscribers in tmux session: $SESSION_NAME"
-echo "Layout: 2x3 grid (top row: nodejs, bottom row: python)"
+# Create log directory
+mkdir -p "$LOG_DIR"
+rm -f "$LOG_DIR"/*.log
+
+echo "Starting all subscribers in background..."
+echo "Logs will be written to: $LOG_DIR/"
 echo ""
-echo "To view: tmux attach -t $SESSION_NAME"
-echo "To stop: $0 stop"
+
+# Start each subscriber in background
+subscribers=(
+    "nodejs:mqtt"
+    "nodejs:ws"
+    "nodejs:sse"
+    "python:mqtt"
+    "python:ws"
+    "python:sse"
+)
+
+for sub in "${subscribers[@]}"; do
+    IFS=':' read -r lang protocol <<< "$sub"
+    log_file="$LOG_DIR/${lang}-${protocol}.log"
+
+    if [ "$lang" = "nodejs" ]; then
+        node "$PROJECT_ROOT/client/nodejs/${protocol}-subscribe.js" > "$log_file" 2>&1 &
+    else
+        python3 "$PROJECT_ROOT/client/python/${protocol}-subscribe.py" > "$log_file" 2>&1 &
+    fi
+
+    echo $! >> "$PID_FILE"
+    echo "Started ${lang}-${protocol} (PID: $!)"
+done
+
 echo ""
-
-# Create new tmux session with first pane (nodejs-mqtt)
-tmux new-session -d -s "$SESSION_NAME" "$WRAPPER nodejs mqtt 34"
-
-# Split window into 2x3 grid
-# Top row: nodejs-mqtt, nodejs-ws, nodejs-sse
-tmux split-window -h -t "$SESSION_NAME" "$WRAPPER nodejs ws 36"
-tmux split-window -h -t "$SESSION_NAME" "$WRAPPER nodejs sse 32"
-
-# Bottom row: python-mqtt, python-ws, python-sse
-tmux select-pane -t "$SESSION_NAME:0.0"
-tmux split-window -v -t "$SESSION_NAME" "$WRAPPER python mqtt 33"
-tmux select-pane -t "$SESSION_NAME:0.1"
-tmux split-window -v -t "$SESSION_NAME" "$WRAPPER python ws 35"
-tmux select-pane -t "$SESSION_NAME:0.2"
-tmux split-window -v -t "$SESSION_NAME" "$WRAPPER python sse 31"
-
-# Balance the layout
-tmux select-layout -t "$SESSION_NAME" tiled
-
 echo "All subscribers started!"
 echo ""
-echo "Attach to view: tmux attach -t $SESSION_NAME"
-echo "Detach once inside: Ctrl+b then d"
-echo "Stop all: $0 stop"
+echo "To view logs:"
+echo "  tail -f $LOG_DIR/*.log"
+echo ""
+echo "To stop all subscribers:"
+echo "  $0 stop"
+echo ""

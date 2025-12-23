@@ -124,7 +124,7 @@ cd client
 ```
 
 This will:
-1. Launch all 6 subscribers in a tmux session (2x3 grid)
+1. Launch all 6 subscribers in background
 2. Test each of the 4 publishers sequentially
 3. Verify all subscribers receive each message
 4. Display a summary report
@@ -138,12 +138,10 @@ You can also run components separately:
 ./run-all-subscribers.sh
 ```
 
-View the tmux session:
+**View subscriber logs:**
 ```bash
-tmux attach -t mqtt-test-subscribers
+tail -f ../test-logs/*.log
 ```
-
-Detach: `Ctrl+b` then `d`
 
 **Run publisher tests:**
 ```bash
@@ -160,12 +158,11 @@ Detach: `Ctrl+b` then `d`
 - **6 Subscribers**: nodejs-mqtt, nodejs-ws, nodejs-sse, python-mqtt, python-ws, python-sse
 - **4 Publishers**: nodejs-mqtt, nodejs-ws, python-mqtt, python-ws
 - **Cross-protocol verification**: Each publisher's message must reach all 6 subscribers
-- **Visual monitoring**: tmux grid shows real-time output from all subscribers
-- **Automated verification**: Test script parses subscriber output and reports pass/fail
+- **Log-based monitoring**: Subscribers write to log files in `test-logs/`
+- **Automated verification**: Test script parses subscriber logs and reports pass/fail
 
 #### Requirements
 
-- tmux (install: `brew install tmux` on macOS, or `apt-get install tmux` on Linux)
 - Harper running on localhost:9926
 - MQTT broker running on localhost:1883
 

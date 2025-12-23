@@ -28,14 +28,8 @@ async def publish_once():
 
             # Format message like HTTP request with method, headers, and body
             payload = json.dumps({
-                "method": "PUT",
-                "headers": {
-                    "Content-Type": "application/json"
-                },
-                "body": {
                     "temp": random_temp(),
                     "location": "warehouse"
-                }
             })
 
             await websocket.send(payload)
@@ -54,7 +48,6 @@ async def publish_once():
 # TIER 2: Continuous publishing - uncomment to enable
 # Replace the main() function below with this version
 # ============================================================
-"""
 async def publish_continuously():
     uri = "ws://localhost:9926/Sensors/101"
 
@@ -64,16 +57,10 @@ async def publish_continuously():
             print("Publishing every 5 seconds... (Ctrl+C to stop)\n")
 
             # Publish immediately with HTTP-like format
-            payload = json.dumps({
-                "method": "PUT",
-                "headers": {
-                    "Content-Type": "application/json"
-                },
-                "body": {
+            payload = json.dumps([{
                     "temp": random_temp(),
                     "location": "warehouse"
-                }
-            })
+            }])
             await websocket.send(payload)
             print(f"Published: {payload}")
 
@@ -81,16 +68,10 @@ async def publish_continuously():
             while True:
                 await asyncio.sleep(5)
 
-                payload = json.dumps({
-                    "method": "PUT",
-                    "headers": {
-                        "Content-Type": "application/json"
-                    },
-                    "body": {
+                payload = json.dumps([{
                         "temp": random_temp(),
                         "location": "warehouse"
-                    }
-                })
+                }])
 
                 await websocket.send(payload)
                 print(f"Published: {payload}")
@@ -99,15 +80,14 @@ async def publish_continuously():
         print("\nStopping publisher...")
     except Exception as e:
         print(f"Error: {e}")
-"""
 
 
 def main():
     # Run TIER 0 by default
-    asyncio.run(publish_once())
+    # asyncio.run(publish_once())
 
     # Uncomment for TIER 2:
-    # asyncio.run(publish_continuously())
+    asyncio.run(publish_continuously())
 
 
 if __name__ == "__main__":

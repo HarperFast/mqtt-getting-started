@@ -3,8 +3,7 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="/Users/ivan/Projects/mqtt-getting-started/client"
-SESSION_NAME="mqtt-test-subscribers"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Color codes
 BLUE='\033[0;34m'
@@ -31,7 +30,7 @@ if ! nc -z localhost 1883 2>/dev/null; then
     exit 1
 fi
 
-echo -e "${BLUE}Step 1: Starting all subscribers in tmux${NC}"
+echo -e "${BLUE}Step 1: Starting all subscribers${NC}"
 echo ""
 
 # Start subscribers
@@ -55,8 +54,7 @@ if ! "$SCRIPT_DIR/run-publishers.sh"; then
 fi
 
 echo ""
-echo -e "${YELLOW}Subscribers are still running in tmux session: $SESSION_NAME${NC}"
-echo "To view: tmux attach -t $SESSION_NAME"
+echo -e "${YELLOW}Subscribers are still running in background${NC}"
 echo "To stop: ./run-all-subscribers.sh stop"
 echo ""
 

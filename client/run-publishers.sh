@@ -3,9 +3,10 @@
 
 set -euo pipefail
 
-SESSION_NAME="mqtt-test-subscribers"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+LOG_DIR="$PROJECT_ROOT/test-logs"
+PID_FILE="$LOG_DIR/subscribers.pids"
 TIMEOUT=5
-PROJECT_ROOT="/Users/ivan/Projects/mqtt-getting-started"
 
 # Color codes for output
 RED='\033[0;31m'
@@ -14,7 +15,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Test results (stored as temporary files for bash 3.2 compatibility)
+# Test results directory
 RESULTS_DIR=$(mktemp -d)
 trap "rm -rf $RESULTS_DIR" EXIT
 
@@ -23,14 +24,14 @@ echo "Cross-Protocol Pub/Sub Test Suite"
 echo "========================================="
 echo ""
 
-# Check if tmux session exists
-if ! tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
-    echo -e "${RED}Error: Subscriber session not found${NC}"
+# Check if subscribers are running
+if [ ! -f "$PID_FILE" ]; then
+    echo -e "${RED}Error: Subscribers not running${NC}"
     echo "Start subscribers first: ./run-all-subscribers.sh"
     exit 1
 fi
 
-echo "Found subscriber session: $SESSION_NAME"
+echo "Found subscriber logs in: $LOG_DIR"
 echo "Timeout per test: ${TIMEOUT}s"
 echo ""
 
@@ -45,8 +46,8 @@ run_publisher_test() {
     echo "========================================="
 
     # Generate unique message payload
-    local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ" 2>/dev/null || date -u +"%Y-%m-%dT%H:%M:%SZ")
-    local temp=$(awk -v min=68 -v max=75 'BEGIN{srand(); print min+rand()*(max-min)}')
+    local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    local temp=$(awk -v min=68 -v max=75 'BEGIN{srand(); printf "%.4f", min+rand()*(max-min)}')
     local location="test-lab-publisher-${pub_name}"
     local payload="{\"temp\":${temp},\"location\":\"${location}\",\"publisher\":\"${pub_name}\",\"timestamp\":\"${timestamp}\"}"
 
@@ -72,28 +73,33 @@ run_publisher_test() {
     echo "Waiting ${TIMEOUT}s for message propagation..."
     sleep "$TIMEOUT"
 
-    # Capture all tmux panes and look for RECEIVED lines
+    # Check all log files for the message
     echo "Checking subscriber receipts..."
     local received_count=0
     local missing_subs=()
 
-    # Check each of the 6 panes
-    for pane_id in 0 1 2 3 4 5; do
-        local pane_content=$(tmux capture-pane -t "${SESSION_NAME}:0.${pane_id}" -p)
+    local subscribers=(
+        "nodejs-mqtt"
+        "nodejs-ws"
+        "nodejs-sse"
+        "python-mqtt"
+        "python-ws"
+        "python-sse"
+    )
 
-        # Look for RECEIVED line matching our publisher
-        if echo "$pane_content" | tail -20 | grep -q "RECEIVED|.*|${pub_name}|"; then
+    for sub_name in "${subscribers[@]}"; do
+        local log_file="$LOG_DIR/${sub_name}.log"
+
+        if [ ! -f "$log_file" ]; then
+            missing_subs+=("$sub_name (no log)")
+            continue
+        fi
+
+        # Look for the location string in the log (unique identifier)
+        if grep -q "$location" "$log_file"; then
             ((received_count++))
         else
-            # Determine which subscriber this pane is
-            case $pane_id in
-                0) missing_subs+=("nodejs-mqtt") ;;
-                1) missing_subs+=("nodejs-ws") ;;
-                2) missing_subs+=("nodejs-sse") ;;
-                3) missing_subs+=("python-mqtt") ;;
-                4) missing_subs+=("python-ws") ;;
-                5) missing_subs+=("python-sse") ;;
-            esac
+            missing_subs+=("$sub_name")
         fi
     done
 
@@ -129,7 +135,7 @@ for pub_name in "nodejs-mqtt" "nodejs-ws" "python-mqtt" "python-ws"; do
     ((total_tests++))
 
     if [ -f "$RESULTS_DIR/$pub_name" ]; then
-        IFS='|' read -r status received total details < "$RESULTS_DIR/$pub_name"
+        IFS='|' read -r status received total details <<< "$(cat "$RESULTS_DIR/$pub_name")"
 
         if [ "$status" = "PASS" ]; then
             ((passed_tests++))
@@ -138,7 +144,7 @@ for pub_name in "nodejs-mqtt" "nodejs-ws" "python-mqtt" "python-ws"; do
             echo -e "${RED}✗${NC} ${pub_name}: ${received}/${total} subscribers ($details)"
         fi
     else
-        echo -e "${RED}✗${NC} ${pub_name}: No results found"
+        echo -e "${RED}✗${NC} ${pub_name}: No result recorded"
     fi
 done
 

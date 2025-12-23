@@ -2,115 +2,73 @@ const WebSocket = require('ws');
 
 // Helper to generate random temperature
 function randomTemp() {
-  return (Math.random() * 20 + 65).toFixed(1); // 65-85°F
+  return (Math.random() * 40 + 65).toFixed(1); // 65-85°F
 }
 
-// ============================================================
-// TIER 0: MVP - Single publish, no database persistence
-// ============================================================
-function publishOnce() {
-  // Connect to Sensors/101 resource
+function publish(once) {
+  // Try collection endpoint instead of specific record
   const ws = new WebSocket('ws://localhost:9926/Sensors/101');
 
   ws.on('open', () => {
     console.log('Connected to Harper WebSocket');
     console.log('WebSocket ready state:', ws.readyState);
+    console.log('WebSocket URL:', ws.url);
+    console.log('Publishing every 5 seconds... (Ctrl+C to stop)\n');
+
+    // Publish immediately
+    const sendMessage = () => {
+      const payload = JSON.stringify([{
+          "temp": parseFloat(randomTemp()),
+          "location": 'warehouse' 
+      }]);
+
+      try {
+        ws.send(payload, (err) => {
+          if (err) {
+            console.error('Error sending message:', err);
+          } else {
+            console.log(`Published: ${payload}`);
+          }
+        });
+      } catch (err) {
+        console.error('Exception while sending:', err);
+      }
+    };
+
+    sendMessage();
+
+    if (! once) {
+      // Then publish every 5 seconds
+      setInterval(sendMessage, 5000);
+    }
   });
 
   ws.on('message', (data) => {
     console.log('Received response from server:', data.toString());
-  });
-
-  ws.on('error', (err) => {
-    console.error('WebSocket error:', err);
-  });
-
-  ws.on('close', (code, reason) => {
-    console.log(`Connection closed. Code: ${code}, Reason: ${reason}`);
-  });
-
-  // Wait a bit after open, then send
-  setTimeout(() => {
-    if (ws.readyState === WebSocket.OPEN) {
-      const payload = JSON.stringify({
-        id: '101',
-        temp: parseFloat(randomTemp()),
-        location: 'warehouse'
-      });
-
-      console.log(`Sending: ${payload}`);
-      ws.send(payload);
-
-      // Keep connection open longer to see any responses
-      setTimeout(() => ws.close(), 2000);
+    try {
+      const parsed = JSON.parse(data.toString());
+      console.log('Parsed response:', JSON.stringify(parsed, null, 2));
+    } catch (e) {
+      console.log('Response is not JSON: ', e.message);
     }
-  }, 500);
-
-  ws.on('close', () => {
-    console.log('Connection closed');
-  });
-}
-
-// ============================================================
-// TIER 1: Enable database persistence
-// WebSocket messages to Harper resources are automatically persisted
-// ============================================================
-
-// ============================================================
-// TIER 2: Continuous publishing - uncomment to enable
-// Comment out publishOnce() below and uncomment this section
-// ============================================================
-function publishContinuously() {
-  // Try collection endpoint instead of specific record
-  const ws = new WebSocket('ws://localhost:9926/Sensors/');
-
-  ws.on('open', () => {
-    console.log('Connected to Harper WebSocket');
-    console.log('Publishing every 5 seconds... (Ctrl+C to stop)\n');
-
-    // Publish immediately with HTTP-like format
-    const payload = JSON.stringify({
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: {
-        temp: parseFloat(randomTemp()),
-        location: 'warehouse'
-      }
-    });
-    ws.send(payload);
-    console.log(`Published: ${payload}`);
-
-    // Then publish every 5 seconds
-    setInterval(() => {
-      const payload = JSON.stringify({
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: {
-          temp: parseFloat(randomTemp()),
-          location: 'warehouse'
-        }
-      });
-      ws.send(payload);
-      console.log(`Published: ${payload}`);
-    }, 5000);
   });
 
   ws.on('error', (err) => {
-    console.error('WebSocket error:', err);
+    console.error('WebSocket error:');
+    console.error('  Message:', err.message);
+    console.error('  Code:', err.code);
+    console.error('  Stack:', err.stack);
     process.exit(1);
   });
 
-  ws.on('close', () => {
-    console.log('Connection closed');
+  ws.on('close', (code, reason) => {
+    console.log(`Connection closed. Code: ${code}, Reason: ${reason || 'No reason provided'}`);
     process.exit(0);
   });
 }
 
-// Run TIER 0 by default
-// publishOnce();
-// Uncomment for TIER 2:
-publishContinuously();
+// true = one-time publish and exit
+// false = continuous publishing every 5 seconds
+let once = false;
+
+publish(once);
