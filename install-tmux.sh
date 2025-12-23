@@ -31,7 +31,7 @@ tar xzf tmux.tar.gz
 # Compile libevent
 echo "Compiling libevent..."
 cd libevent-2.1.12-stable
-./configure --prefix="$INSTALL_PREFIX" --disable-shared
+./configure --prefix="$INSTALL_PREFIX" --disable-shared --disable-openssl
 make
 make install
 cd ..
