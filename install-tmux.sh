@@ -8,7 +8,7 @@ echo ""
 
 # Get the project root directory (where this script lives)
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-INSTALL_PREFIX="$PROJECT_ROOT/bin"
+INSTALL_PREFIX="$PROJECT_ROOT"
 BUILD_DIR="$PROJECT_ROOT/tmux-build"
 
 # Create directories
@@ -65,15 +65,14 @@ echo "========================================"
 echo "Installation complete!"
 echo "========================================"
 echo ""
+"$INSTALL_PREFIX/bin/tmux" -V
+echo ""
 echo "tmux installed to: $INSTALL_PREFIX/bin/tmux"
 echo ""
-echo "To use:"
-echo "  $INSTALL_PREFIX/bin/tmux"
+echo "Add to your PATH with:"
 echo ""
-echo "Or add to your PATH:"
 echo "  export PATH=\"$INSTALL_PREFIX/bin:\$PATH\""
 echo ""
 echo "To remove tmux and all dependencies later:"
-echo "  rm -rf $INSTALL_PREFIX"
-echo ""
-"$INSTALL_PREFIX/bin/tmux" -V    
+echo "  rm -rf $INSTALL_PREFIX/bin $INSTALL_PREFIX/lib $INSTALL_PREFIX/include $INSTALL_PREFIX/share"
+echo ""    
