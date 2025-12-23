@@ -108,6 +108,67 @@ All client implementations follow the same tier progression:
 - **WebSocket:** Bidirectional communication, direct resource connection, automatic persistence, lower overhead
 - **SSE:** Unidirectional (server→client), simple HTTP-based, automatic reconnection, automatic persistence
 
+## Testing
+
+### Cross-Protocol Test Suite
+
+Automated tests verify that messages published via any protocol (MQTT/WebSocket) are received by all subscribers across all protocols and languages.
+
+#### Quick Start
+
+Run all tests with one command:
+
+```bash
+cd client
+./test.sh
+```
+
+This will:
+1. Launch all 6 subscribers in a tmux session (2x3 grid)
+2. Test each of the 4 publishers sequentially
+3. Verify all subscribers receive each message
+4. Display a summary report
+
+#### Individual Scripts
+
+You can also run components separately:
+
+**Start subscribers:**
+```bash
+./run-all-subscribers.sh
+```
+
+View the tmux session:
+```bash
+tmux attach -t mqtt-test-subscribers
+```
+
+Detach: `Ctrl+b` then `d`
+
+**Run publisher tests:**
+```bash
+./run-publishers.sh
+```
+
+**Stop subscribers:**
+```bash
+./run-all-subscribers.sh stop
+```
+
+#### Test Architecture
+
+- **6 Subscribers**: nodejs-mqtt, nodejs-ws, nodejs-sse, python-mqtt, python-ws, python-sse
+- **4 Publishers**: nodejs-mqtt, nodejs-ws, python-mqtt, python-ws
+- **Cross-protocol verification**: Each publisher's message must reach all 6 subscribers
+- **Visual monitoring**: tmux grid shows real-time output from all subscribers
+- **Automated verification**: Test script parses subscriber output and reports pass/fail
+
+#### Requirements
+
+- tmux (install: `./install-tmux.sh` or `brew install tmux` on macOS)
+- Harper running on localhost:9926
+- MQTT broker running on localhost:1883
+
 ## License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
