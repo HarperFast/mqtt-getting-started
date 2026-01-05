@@ -66,7 +66,7 @@ run_publisher_test() {
     # Publish the message
     echo "Publishing..."
     if ! $cmd "$payload" 2>&1; then
-        echo -e "${RED}✗ Publish failed${NC}"
+        echo -e "${RED}= Publish failed${NC}"
         echo "FAIL|0|7|Publish error" > "$RESULTS_DIR/$pub_name"
         return 1
     fi
@@ -96,17 +96,17 @@ run_publisher_test() {
 
         if [ ! -f "$log_file" ]; then
             missing_subs+=("$sub_name (no log)")
-            sub_results+=("$sub_name:❌")
+            sub_results+=("$sub_name:=")
             continue
         fi
 
         # Look for the location string in the log (unique identifier)
         if grep -q "$location" "$log_file"; then
             ((received_count++))
-            sub_results+=("$sub_name:✅")
+            sub_results+=("$sub_name:+")
         else
             missing_subs+=("$sub_name")
-            sub_results+=("$sub_name:❌")
+            sub_results+=("$sub_name:=")
         fi
     done
 
@@ -117,9 +117,9 @@ run_publisher_test() {
     # Report results
     echo ""
     if [ "$received_count" -eq 7 ]; then
-        echo -e "${GREEN}✓ SUCCESS: All 7 subscribers received message${NC}"
+        echo -e "${GREEN}+ SUCCESS: All 7 subscribers received message${NC}"
     else
-        echo -e "${RED}✗ FAILED: Only ${received_count}/7 subscribers received message${NC}"
+        echo -e "${RED}= FAILED: Only ${received_count}/7 subscribers received message${NC}"
         echo -e "${YELLOW}Missing: ${missing_subs[*]}${NC}"
     fi
     echo ""
@@ -128,8 +128,10 @@ run_publisher_test() {
 # Run all publisher tests (|| true to prevent set -e from exiting on failure)
 run_publisher_test "nodejs" "mqtt" || true
 run_publisher_test "nodejs" "ws" || true
+run_publisher_test "nodejs" "http" || true
 run_publisher_test "python" "mqtt" || true
 run_publisher_test "python" "ws" || true
+run_publisher_test "python" "http" || true
 run_publisher_test "mqttx" "mqtt" || true
 
 # Print final summary
@@ -150,10 +152,21 @@ subscribers=(
     "mqttx-mqtt"
 )
 
+# Function to center text in a field
+center_text() {
+    local text="$1"
+    local width="$2"
+    local len=${#text}
+    local padding=$(( (width - len) / 2 ))
+    local right_padding=$(( width - len - padding ))
+    printf "%${padding}s%s%${right_padding}s" "" "$text" ""
+}
+
 # Print table header
 printf "%-40s" "Publisher (rows) / Subscriber (columns)"
 for sub in "${subscribers[@]}"; do
-    printf " %-12s" "$sub"
+    printf " "
+    center_text "$sub" 12
 done
 echo ""
 
@@ -168,8 +181,10 @@ get_pub_label() {
     case "$1" in
         "nodejs-mqtt") echo "Node.js MQTT" ;;
         "nodejs-ws") echo "Node.js WS" ;;
+        "nodejs-http") echo "Node.js HTTP" ;;
         "python-mqtt") echo "Python MQTT" ;;
         "python-ws") echo "Python WS" ;;
+        "python-http") echo "Python HTTP" ;;
         "mqttx-mqtt") echo "MQTTX MQTT" ;;
     esac
 }
@@ -179,7 +194,7 @@ total_tests=0
 passed_tests=0
 
 # Print results for each publisher
-for pub_name in "nodejs-mqtt" "nodejs-ws" "python-mqtt" "python-ws" "mqttx-mqtt"; do
+for pub_name in "nodejs-mqtt" "nodejs-ws" "nodejs-http" "python-mqtt" "python-ws" "python-http" "mqttx-mqtt"; do
     ((total_tests++))
     pub_label=$(get_pub_label "$pub_name")
     printf "%-40s" "$pub_label"
@@ -195,14 +210,19 @@ for pub_name in "nodejs-mqtt" "nodejs-ws" "python-mqtt" "python-ws" "mqttx-mqtt"
             status=$(echo "$results" | grep -o "$sub:[^|]*" | cut -d: -f2)
 
             if [ -z "$status" ]; then
-                printf " %-12s" "⚪️"
+                printf " "
+                center_text "?" 12
                 all_passed=false
-            elif [ "$status" = "✅" ]; then
+            elif [ "$status" = "+" ]; then
                 # Green for success
-                printf " ${GREEN}%-12s${NC}" "$status"
+                printf " ${GREEN}"
+                center_text "$status" 12
+                printf "${NC}"
             else
                 # Red for failure
-                printf " ${RED}%-12s${NC}" "$status"
+                printf " ${RED}"
+                center_text "$status" 12
+                printf "${NC}"
                 all_passed=false
             fi
         done
@@ -213,7 +233,8 @@ for pub_name in "nodejs-mqtt" "nodejs-ws" "python-mqtt" "python-ws" "mqttx-mqtt"
     else
         # No results file
         for sub in "${subscribers[@]}"; do
-            printf " ${RED}%-12s${NC}" "⚪️"
+            printf " "
+            center_text "?" 12
         done
     fi
     echo ""
@@ -227,9 +248,9 @@ echo ""
 "$PROJECT_ROOT/client/update-test-results.sh" "$RESULTS_DIR" || echo "Warning: Could not update README"
 
 if [ "$passed_tests" -eq "$total_tests" ]; then
-    echo -e "${GREEN}✅ All tests passed!${NC}"
+    echo -e "${GREEN}+ All tests passed!${NC}"
     exit 0
 else
-    echo -e "${YELLOW}⚠️  Some tests failed${NC}"
+    echo -e "${YELLOW}= Some tests failed${NC}"
     exit 1
 fi

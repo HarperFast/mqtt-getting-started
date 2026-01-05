@@ -130,7 +130,7 @@ case "$PLATFORM" in
 esac
 
 echo ""
-echo "✓ Installation complete!"
+echo "+ Installation complete!"
 echo ""
 echo "Verify installation:"
 echo "  mqttx --version"

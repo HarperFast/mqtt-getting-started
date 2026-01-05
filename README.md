@@ -71,18 +71,20 @@ harper-mqtt-getting-started/
 │   ├── resources.js         # Application logic
 │   └── package.json
 └── client/                  # Real-time client examples
-    ├── nodejs/              # Node.js clients (MQTT, WebSocket, SSE)
+    ├── nodejs/              # Node.js clients (MQTT, WebSocket, HTTP, SSE)
     │   ├── mqtt-publish.js
     │   ├── mqtt-subscribe.js
     │   ├── ws-publish.js
     │   ├── ws-subscribe.js
+    │   ├── http-publish.js
     │   ├── sse-subscribe.js
     │   └── package.json
-    ├── python/              # Python clients (MQTT, WebSocket, SSE)
+    ├── python/              # Python clients (MQTT, WebSocket, HTTP, SSE)
     │   ├── mqtt-publish.py
     │   ├── mqtt-subscribe.py
     │   ├── ws-publish.py
     │   ├── ws-subscribe.py
+    │   ├── http-publish.py
     │   ├── sse-subscribe.py
     │   └── requirements.txt
     └── mqttx/               # MQTTX CLI shell scripts
@@ -94,17 +96,19 @@ harper-mqtt-getting-started/
 ## Client Implementations
 
 ### [Node.js](./client/nodejs/)
-Real-time clients supporting MQTT, WebSocket, and SSE.
+Real-time clients supporting MQTT, WebSocket, HTTP, and SSE.
 - **MQTT:** Full pub/sub broker with topic-based routing using `mqtt` package
 - **WebSocket:** Bidirectional communication using `ws` package
+- **HTTP:** RESTful PUT requests using native `http` module
 - **SSE:** Server-to-client streaming using `eventsource` package
 - Supports modern async/await patterns
 - Easy to integrate into existing Node.js projects
 
 ### [Python](./client/python/)
-Real-time clients supporting MQTT, WebSocket, and SSE.
+Real-time clients supporting MQTT, WebSocket, HTTP, and SSE.
 - **MQTT:** Industry-standard `paho-mqtt` library
 - **WebSocket:** Async support with `websockets` library
+- **HTTP:** RESTful PUT requests using native `http.client` module
 - **SSE:** Server-to-client streaming using `sseclient-py` library
 - Clean and readable Python code
 - Great for IoT and data processing applications
@@ -120,6 +124,7 @@ Shell script examples using the MQTTX command-line tool.
 
 - **MQTT:** Full pub/sub broker, topic-based routing, QoS levels, requires retain flag for persistence
 - **WebSocket:** Bidirectional communication, direct resource connection, automatic persistence, lower overhead
+- **HTTP:** RESTful PUT requests, direct resource updates, automatic persistence, simple request/response model
 - **SSE:** Unidirectional (server→client), simple HTTP-based, automatic reconnection, automatic persistence
 
 ## Publisher Usage
@@ -133,10 +138,12 @@ Run without arguments to continuously publish auto-generated messages every 5 se
 # Node.js
 node client/nodejs/mqtt-publish.js
 node client/nodejs/ws-publish.js
+node client/nodejs/http-publish.js
 
 # Python
 python3 client/python/mqtt-publish.py
 python3 client/python/ws-publish.py
+python3 client/python/http-publish.py
 
 # MQTTX CLI
 client/mqttx/mqttx-publish.sh
@@ -148,9 +155,11 @@ Provide a JSON payload as an argument for testing (used by test suite):
 ```bash
 # Node.js
 node client/nodejs/mqtt-publish.js '{"temp":72.5,"location":"test-lab"}'
+node client/nodejs/http-publish.js '{"temp":72.5,"location":"test-lab"}'
 
 # Python
 python3 client/python/mqtt-publish.py '{"temp":72.5,"location":"test-lab"}'
+python3 client/python/http-publish.py '{"temp":72.5,"location":"test-lab"}'
 
 # MQTTX CLI
 client/mqttx/mqttx-publish.sh '{"temp":72.5,"location":"test-lab"}'
@@ -174,7 +183,7 @@ MQTT_RETAIN=false node client/nodejs/mqtt-publish.js '{"temp":72.5,"location":"w
 MQTT_RETAIN=false python3 client/python/mqtt-publish.py
 ```
 
-**Note:** WebSocket messages to Harper resources are always persisted automatically.
+**Note:** WebSocket and HTTP PUT messages to Harper resources are always persisted automatically.
 
 ## Testing
 
@@ -186,15 +195,17 @@ Automated tests verify that messages published via any protocol (MQTT/WebSocket)
 
 <!-- TEST_RESULTS_START -->
 
-Last run: 2026-01-05 23:27:10 UTC
+Last run: 2026-01-05 23:54:54 UTC
 
 | Publisher (rows) / Subscriber (columns) | nodejs-mqtt | nodejs-ws | nodejs-sse | python-mqtt | python-ws | python-sse | mqttx-mqtt |
-|----------------------------------------|-------------|-------------|-------------|-------------|-------------|-------------|-------------|
-| Node.js MQTT | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Node.js WS | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Python MQTT | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Python WS | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| MQTTX MQTT | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+|----------------------------------------|:-----------:|:-----------:|:-----------:|:-----------:|:-----------:|:-----------:|:-----------:|
+| Node.js MQTT | + | + | + | + | + | + | + |
+| Node.js WS | + | + | + | + | + | + | + |
+| Node.js HTTP | + | + | + | + | + | + | + |
+| Python MQTT | + | + | + | + | + | + | + |
+| Python WS | + | + | + | + | + | + | + |
+| Python HTTP | + | + | + | + | + | + | + |
+| MQTTX MQTT | + | + | + | + | + | + | + |
 
 <!-- TEST_RESULTS_END -->
 
@@ -209,7 +220,7 @@ cd client
 
 This will:
 1. Launch all 7 subscribers in background
-2. Test each of the 5 publishers sequentially
+2. Test each of the 7 publishers sequentially
 3. Verify all subscribers receive each message
 4. Display a summary report
 
@@ -240,7 +251,7 @@ tail -f ../test-logs/*.log
 #### Test Architecture
 
 - **7 Subscribers**: nodejs-mqtt, nodejs-ws, nodejs-sse, python-mqtt, python-ws, python-sse, mqttx-mqtt
-- **5 Publishers**: nodejs-mqtt, nodejs-ws, python-mqtt, python-ws, mqttx-mqtt
+- **7 Publishers**: nodejs-mqtt, nodejs-ws, nodejs-http, python-mqtt, python-ws, python-http, mqttx-mqtt
 - **Cross-protocol verification**: Each publisher's message must reach all 7 subscribers
 - **Log-based monitoring**: Subscribers write to log files in `test-logs/`
 - **Automated verification**: Test script parses subscriber logs and reports pass/fail

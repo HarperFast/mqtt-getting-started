@@ -15,8 +15,10 @@ get_pub_label() {
     case "$1" in
         "nodejs-mqtt") echo "Node.js MQTT" ;;
         "nodejs-ws") echo "Node.js WS" ;;
+        "nodejs-http") echo "Node.js HTTP" ;;
         "python-mqtt") echo "Python MQTT" ;;
         "python-ws") echo "Python WS" ;;
+        "python-http") echo "Python HTTP" ;;
         "mqttx-mqtt") echo "MQTTX MQTT" ;;
     esac
 }
@@ -47,12 +49,12 @@ generate_table() {
     # Print separator
     echo -n "|----------------------------------------|"
     for sub in "${subscribers[@]}"; do
-        echo -n "-------------|"
+        echo -n ":-----------:|"
     done
     echo ""
 
     # Print results for each publisher
-    for key in "nodejs-mqtt" "nodejs-ws" "python-mqtt" "python-ws" "mqttx-mqtt"; do
+    for key in "nodejs-mqtt" "nodejs-ws" "nodejs-http" "python-mqtt" "python-ws" "python-http" "mqttx-mqtt"; do
         pub_label=$(get_pub_label "$key")
         echo -n "| $pub_label |"
 
@@ -65,7 +67,7 @@ generate_table() {
                 status=$(echo "$results" | grep -o "$sub:[^|]*" | cut -d: -f2)
 
                 if [ -z "$status" ]; then
-                    status="⚪️"
+                    status="?"
                 fi
 
                 echo -n " $status |"
@@ -73,7 +75,7 @@ generate_table() {
         else
             # No results file - mark all as not tested
             for sub in "${subscribers[@]}"; do
-                echo -n " ⚪️ |"
+                echo -n " ? |"
             done
         fi
         echo ""
@@ -99,4 +101,4 @@ TEMP_README=$(mktemp)
 
 mv "$TEMP_README" "$README"
 
-echo "📝 Updated README with test results"
+echo "Updated README with test results"
