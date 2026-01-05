@@ -186,7 +186,7 @@ Automated tests verify that messages published via any protocol (MQTT/WebSocket)
 
 <!-- TEST_RESULTS_START -->
 
-Last run: 2026-01-05 16:27:48 UTC
+Last run: 2026-01-05 23:27:10 UTC
 
 | Publisher (rows) / Subscriber (columns) | nodejs-mqtt | nodejs-ws | nodejs-sse | python-mqtt | python-ws | python-sse | mqttx-mqtt |
 |----------------------------------------|-------------|-------------|-------------|-------------|-------------|-------------|-------------|
