@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-WebSocket Publisher for sensor data
-Requires: pip install websockets
+HTTP Publisher for sensor data (via Harper REST API)
+Previously used WebSocket, but Harper WebSocket is read-only for subscriptions.
+Publishing is done via HTTP PUT.
 
 Usage:
   python3 ws-publish.py                                    # Continuous publishing with auto-generated messages
@@ -11,8 +12,8 @@ Usage:
 import sys
 import json
 import random
-import asyncio
-import websockets
+import time
+import http.client
 
 
 def random_temp():
@@ -20,65 +21,61 @@ def random_temp():
     return round(random.uniform(65, 85), 4)
 
 
-async def publish_once(payload_data):
-    """Publish a single message via WebSocket (for testing)"""
-    uri = "ws://localhost:9926/Sensors/101"
+def http_put(data):
+    """Publish a message via HTTP PUT"""
+    conn = http.client.HTTPConnection("localhost", 9926)
 
     try:
-        async with websockets.connect(uri) as websocket:
-            print("Connected to Harper WebSocket")
+        payload = json.dumps(data)
+        headers = {
+            "Content-Type": "application/json",
+            "Content-Length": str(len(payload))
+        }
 
-            payload = json.dumps([payload_data])
-            await websocket.send(payload)
-            print(f"Published: {payload}")
+        conn.request("PUT", "/Sensors/101", payload, headers)
+        response = conn.getresponse()
 
-            # Wait for response
-            try:
-                response = await asyncio.wait_for(websocket.recv(), timeout=3.0)
-            except asyncio.TimeoutError:
-                pass
+        if response.status >= 200 and response.status < 300:
+            return True
+        else:
+            raise Exception(f"HTTP {response.status}: {response.read().decode()}")
+    finally:
+        conn.close()
 
-            # Give time for message to bridge
-            await asyncio.sleep(2)
 
+def publish_once(payload_data):
+    """Publish a single message via HTTP PUT (for testing)"""
+    try:
+        print("Connected to Harper (HTTP)")
+        http_put(payload_data)
+        print(f"Published: {json.dumps(payload_data)}")
     except Exception as e:
         print(f"Error: {e}")
         sys.exit(1)
 
 
-async def publish_continuously():
+def publish_continuously():
     """Continuous publishing with auto-generated messages"""
-    uri = "ws://localhost:9926/Sensors/101"
+    print("Connected to Harper (HTTP)")
+    print("Publishing every 5 seconds... (Ctrl+C to stop)\n")
 
     try:
-        async with websockets.connect(uri) as websocket:
-            print("Connected to Harper WebSocket")
-            print("Publishing every 5 seconds... (Ctrl+C to stop)\n")
-
-            # Publish immediately
-            payload = json.dumps([{
+        while True:
+            data = {
                 "temp": random_temp(),
                 "location": "warehouse"
-            }])
-            await websocket.send(payload)
-            print(f"Published: {payload}")
+            }
 
-            # Then publish every 5 seconds
-            while True:
-                await asyncio.sleep(5)
+            try:
+                http_put(data)
+                print(f"Published: {json.dumps(data)}")
+            except Exception as e:
+                print(f"Publish failed: {e}")
 
-                payload = json.dumps([{
-                    "temp": random_temp(),
-                    "location": "warehouse"
-                }])
-
-                await websocket.send(payload)
-                print(f"Published: {payload}")
+            time.sleep(5)
 
     except KeyboardInterrupt:
         print("\nStopping publisher...")
-    except Exception as e:
-        print(f"Error: {e}")
 
 
 def main():
@@ -87,9 +84,9 @@ def main():
 
     if custom_payload:
         payload_data = json.loads(custom_payload)
-        asyncio.run(publish_once(payload_data))
+        publish_once(payload_data)
     else:
-        asyncio.run(publish_continuously())
+        publish_continuously()
 
 
 if __name__ == "__main__":

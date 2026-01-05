@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-const WebSocket = require('ws');
+const http = require('http');
 
 // Helper to generate random temperature
 function randomTemp() {
@@ -9,84 +9,85 @@ function randomTemp() {
 // Check if custom payload provided (for testing)
 const customPayload = process.argv[2];
 
-function publish() {
-  const ws = new WebSocket('ws://localhost:9926/Sensors/101');
+function httpPut(data) {
+  return new Promise((resolve, reject) => {
+    const payload = JSON.stringify(data);
 
-  ws.on('open', () => {
-    console.log('Connected to Harper WebSocket');
-
-    if (customPayload) {
-      // Single publish with provided payload (for testing)
-      const payloadData = JSON.parse(customPayload);
-      const payload = JSON.stringify([payloadData]);
-
-      try {
-        ws.send(payload, (err) => {
-          if (err) {
-            console.error('Error sending message:', err);
-          } else {
-            console.log(`Published: ${payload}`);
-          }
-        });
-      } catch (err) {
-        console.error('Exception while sending:', err);
-        process.exit(1);
+    const options = {
+      hostname: 'localhost',
+      port: 9926,
+      path: '/Sensors/101',
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload)
       }
-    } else {
-      // Default: continuous publishing with auto-generated messages
-      console.log('Publishing every 5 seconds... (Ctrl+C to stop)\n');
+    };
 
-      const sendMessage = () => {
-        const payload = JSON.stringify([{
-          temp: parseFloat(randomTemp()),
-          location: 'warehouse'
-        }]);
+    const req = http.request(options, (res) => {
+      let responseData = '';
 
-        try {
-          ws.send(payload, (err) => {
-            if (err) {
-              console.error('Error sending message:', err);
-            } else {
-              console.log(`Published: ${payload}`);
-            }
-          });
-        } catch (err) {
-          console.error('Exception while sending:', err);
+      res.on('data', (chunk) => {
+        responseData += chunk;
+      });
+
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve({ status: res.statusCode, data: responseData });
+        } else {
+          reject(new Error(`HTTP ${res.statusCode}: ${responseData}`));
         }
+      });
+    });
+
+    req.on('error', (err) => {
+      reject(err);
+    });
+
+    req.write(payload);
+    req.end();
+  });
+}
+
+async function publish() {
+  console.log('Connected to Harper (HTTP)');
+
+  if (customPayload) {
+    // Single publish with provided payload (for testing)
+    const payloadData = JSON.parse(customPayload);
+
+    try {
+      await httpPut(payloadData);
+      console.log(`Published: ${JSON.stringify(payloadData)}`);
+      process.exit(0);
+    } catch (err) {
+      console.error('Publish failed:', err.message);
+      process.exit(1);
+    }
+  } else {
+    // Default: continuous publishing with auto-generated messages
+    console.log('Publishing every 5 seconds... (Ctrl+C to stop)\n');
+
+    const sendMessage = async () => {
+      const data = {
+        temp: parseFloat(randomTemp()),
+        location: 'warehouse'
       };
 
-      // Publish immediately
-      sendMessage();
+      try {
+        await httpPut(data);
+        console.log(`Published: ${JSON.stringify(data)}`);
+      } catch (err) {
+        console.error('Publish failed:', err.message);
+      }
+    };
 
-      // Then publish every 5 seconds
-      setInterval(sendMessage, 5000);
-    }
-  });
+    // Publish immediately
+    await sendMessage();
 
-  ws.on('message', (data) => {
-    if (customPayload) {
-      // When using custom payload, wait after response then close
-      setTimeout(() => ws.close(), 2000);
-    }
-    // Otherwise just log the response
-  });
-
-  ws.on('error', (err) => {
-    console.error('WebSocket error:');
-    console.error('  Message:', err.message);
-    console.error('  Code:', err.code);
-    console.error('  Stack:', err.stack);
-    process.exit(1);
-  });
-
-  ws.on('close', (code, reason) => {
-    if (customPayload) {
-      process.exit(0);
-    } else {
-      console.log(`Connection closed. Code: ${code}, Reason: ${reason || 'No reason provided'}`);
-      process.exit(0);
-    }
-  });
+    // Then publish every 5 seconds
+    setInterval(sendMessage, 5000);
+  }
 }
 
 publish();

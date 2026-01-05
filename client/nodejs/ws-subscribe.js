@@ -7,7 +7,7 @@ const ws = new WebSocket('ws://localhost:9926/Sensors/101');
 
 ws.on('open', () => {
   console.log('Connected to Harper WebSocket');
-  console.log('Subscribed to: Sensors/101');
+  console.log('Subscribed to: /Sensors/101');
   console.log('Listening for messages...\n');
 });
 
@@ -18,13 +18,13 @@ ws.on('message', (data) => {
     const payload = JSON.parse(data.toString());
     // Harper sends change events with metadata, actual data is in 'value'
     const record = payload.value || payload;
-    console.log(`[${new Date().toISOString()}] Update on Sensors/101:`);
+    console.log(`[${new Date().toISOString()}] Update on /Sensors/101:`);
     console.log(`  Temperature: ${record.temp}°F`);
     console.log(`  Location: ${record.location}`);
     console.log('');
   } catch (err) {
     // If message isn't JSON, just log it as-is
-    console.log(`[${new Date().toISOString()}] Update on Sensors/101:`, data.toString());
+    console.log(`[${new Date().toISOString()}] Update on /Sensors/101:`, data.toString());
     console.log('');
   }
 });

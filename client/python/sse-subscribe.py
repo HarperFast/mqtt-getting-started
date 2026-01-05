@@ -21,7 +21,7 @@ def subscribe():
         client = SSEClient(response)
 
         print("Connected to Harper SSE")
-        print("Subscribed to: Sensors/101")
+        print("Subscribed to: /Sensors/101")
         print("Listening for messages...\n")
 
         # Receives the current state immediately upon connection,
@@ -33,7 +33,7 @@ def subscribe():
                 record = payload.get('value', payload)
                 timestamp = datetime.now().isoformat()
 
-                print(f"[{timestamp}] Update on Sensors/101:")
+                print(f"[{timestamp}] Update on /Sensors/101:")
                 print(f"  Temperature: {record['temp']}°F")
                 print(f"  Location: {record['location']}")
                 print()
@@ -41,7 +41,7 @@ def subscribe():
             except json.JSONDecodeError:
                 # If message isn't JSON, just log it as-is
                 timestamp = datetime.now().isoformat()
-                print(f"[{timestamp}] Update on Sensors/101: {event.data}")
+                print(f"[{timestamp}] Update on /Sensors/101: {event.data}")
                 print()
             except Exception as e:
                 print(f"Error processing message: {e}")

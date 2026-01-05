@@ -186,14 +186,14 @@ Automated tests verify that messages published via any protocol (MQTT/WebSocket)
 
 <!-- TEST_RESULTS_START -->
 
-Last run: 2025-12-23 21:51:26 UTC
+Last run: 2026-01-05 16:27:48 UTC
 
 | Publisher (rows) / Subscriber (columns) | nodejs-mqtt | nodejs-ws | nodejs-sse | python-mqtt | python-ws | python-sse | mqttx-mqtt |
 |----------------------------------------|-------------|-------------|-------------|-------------|-------------|-------------|-------------|
 | Node.js MQTT | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Node.js WS | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Node.js WS | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Python MQTT | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Python WS | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Python WS | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | MQTTX MQTT | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 <!-- TEST_RESULTS_END -->

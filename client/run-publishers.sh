@@ -125,12 +125,12 @@ run_publisher_test() {
     echo ""
 }
 
-# Run all publisher tests
-run_publisher_test "nodejs" "mqtt"
-run_publisher_test "nodejs" "ws"
-run_publisher_test "python" "mqtt"
-run_publisher_test "python" "ws"
-run_publisher_test "mqttx" "mqtt"
+# Run all publisher tests (|| true to prevent set -e from exiting on failure)
+run_publisher_test "nodejs" "mqtt" || true
+run_publisher_test "nodejs" "ws" || true
+run_publisher_test "python" "mqtt" || true
+run_publisher_test "python" "ws" || true
+run_publisher_test "mqttx" "mqtt" || true
 
 # Print final summary
 echo ""
